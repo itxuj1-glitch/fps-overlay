@@ -13,14 +13,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v3
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
 
-    - name: Add MSVC to PATH
+    - name: Set up MSVC environment
       uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Build with MSBuild
-      run: build-msvc.bat
+    - name: Build Solution with MSBuild
+      run: msbuild fps-overlay.sln /p:Configuration=Release /p:Platform=x64
       shell: cmd
 
     - name: Upload Artifact
