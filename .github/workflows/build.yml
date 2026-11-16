@@ -16,11 +16,9 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Build with MSVC Environment
+    - name: Build with MSBuild Script
+      run: build-msvc.bat
       shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
-        build-msvc.bat
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
