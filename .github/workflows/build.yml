@@ -13,8 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up MSBuild
-      uses: microsoft/setup-msbuild@v2
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v3
+
+    - name: Add MSVC to PATH
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Build with MSBuild
       run: build-msvc.bat
