@@ -140,7 +140,7 @@ struct OverlayConfig {
     bool showGpuTemp = true;
     bool showVRAM = true;
     bool showRAM  = true;
-    bool showProcessName = true;
+    bool showProcessName = false;
     bool showTime = false;
     int  timeFormat = TIME_FORMAT_24H;
     bool timeShowSeconds = true;
@@ -347,7 +347,7 @@ static void LoadConfig(OverlayConfig& cfg)
     }
     cfg.showVRAM        = ReadIniInt("Display", "showVRAM", 1) != 0;
     cfg.showRAM         = ReadIniInt("Display", "showRAM", 1) != 0;
-    cfg.showProcessName = ReadIniInt("Display", "showProcessName", 1) != 0;
+    cfg.showProcessName = false; // Minimal overlay: never show the current app/game name.
     cfg.showTime        = ReadIniInt("Display", "showTime", 0) != 0;
     cfg.timeFormat      = ReadIniInt("Display", "timeFormat", TIME_FORMAT_24H);
     cfg.timeShowSeconds = ReadIniInt("Display", "timeShowSeconds", 1) != 0;
@@ -471,7 +471,7 @@ static void SaveConfig(const OverlayConfig& cfg)
     WriteIniInt("Display", "showGPU", (cfg.showGpuUsage || cfg.showGpuTemp) ? 1 : 0);
     WriteIniInt("Display", "showVRAM", cfg.showVRAM ? 1 : 0);
     WriteIniInt("Display", "showRAM", cfg.showRAM ? 1 : 0);
-    WriteIniInt("Display", "showProcessName", cfg.showProcessName ? 1 : 0);
+    WriteIniInt("Display", "showProcessName", 0);
     WriteIniInt("Display", "showTime", cfg.showTime ? 1 : 0);
     WriteIniInt("Display", "timeFormat", cfg.timeFormat);
     WriteIniInt("Display", "timeShowSeconds", cfg.timeShowSeconds ? 1 : 0);
@@ -526,8 +526,18 @@ static bool          g_OvlVisible = true;
 
 static ImVec4 OvCol(float r, float g, float b, float a = 1.f)
 {
+    (void)r; (void)g; (void)b;
     const float ta = (g_Config.textOpacity / 100.f) * a;
-    return ImVec4(r, g, b, ta);
+    // Fixed overlay colour: #00E5FF.
+    return ImVec4(0.f, 229.f / 255.f, 1.f, ta);
+}
+
+static ImVec4 OvTempCol(float celsius, float warningThreshold)
+{
+    const float ta = g_Config.textOpacity / 100.f;
+    if (celsius > warningThreshold)
+        return ImVec4(1.f, 1.f, 0.f, ta); // Yellow only above the requested limit.
+    return ImVec4(0.f, 229.f / 255.f, 1.f, ta);
 }
 
 static ImVec4 OvColV(const ImVec4& c)
@@ -770,7 +780,7 @@ static void PollClockSensors()
 }
 
 // Clean numeric MHz readout without sparkline graph
-static void DrawCleanFreqMHz(float mhz, const ImVec4& col = ImVec4(.72f, .82f, .92f, 1.f))
+static void DrawCleanFreqMHz(float mhz, const ImVec4& col = ImVec4(0.f, 229.f / 255.f, 1.f, 1.f))
 {
     if (mhz > 0.f)
         ImGui::TextColored(OvColV(col), "%s", locale::TF("%.0f MHz", mhz));
@@ -1925,9 +1935,9 @@ void ApplyStyle()
     c[ImGuiCol_FrameBg]          = ImVec4(0.14f,0.14f,0.17f,1);
     c[ImGuiCol_FrameBgHovered]   = ImVec4(0.20f,0.20f,0.24f,1);
     c[ImGuiCol_FrameBgActive]    = ImVec4(0.26f,0.26f,0.30f,1);
-    c[ImGuiCol_CheckMark]        = ImVec4(0.30f,0.75f,1.00f,1);
-    c[ImGuiCol_SliderGrab]       = ImVec4(0.30f,0.75f,1.00f,1);
-    c[ImGuiCol_SliderGrabActive] = ImVec4(0.45f,0.85f,1.00f,1);
+    c[ImGuiCol_CheckMark]        = ImVec4(0.f,229.f/255.f,1.f,1);
+    c[ImGuiCol_SliderGrab]       = ImVec4(0.f,229.f/255.f,1.f,1);
+    c[ImGuiCol_SliderGrabActive] = ImVec4(0.f,229.f/255.f,1.f,1);
     c[ImGuiCol_Button]           = ImVec4(0.16f,0.16f,0.20f,1);
     c[ImGuiCol_ButtonHovered]    = ImVec4(0.22f,0.22f,0.28f,1);
     c[ImGuiCol_ButtonActive]     = ImVec4(0.28f,0.28f,0.34f,1);
@@ -2039,16 +2049,14 @@ static void Present(float r, float g, float b, float a)
 
 static ImVec4 ColorByLoad(float v, float warn = 70, float crit = 90)
 {
-    if (v > crit) return ImVec4(1,.3f,.3f,1);
-    if (v > warn) return ImVec4(1,.85f,.15f,1);
-    return ImVec4(.75f,.75f,.80f,1);
+    (void)v; (void)warn; (void)crit;
+    return ImVec4(0.f, 229.f / 255.f, 1.f, 1.f);
 }
 
 static ImVec4 ColorByFps(float fps)
 {
-    if (fps >= 60.f) return ImVec4(.18f,.94f,.45f,1);
-    if (fps >= 30.f) return ImVec4(1,.85f,.15f,1);
-    return ImVec4(1,.25f,.25f,1);
+    (void)fps;
+    return ImVec4(0.f, 229.f / 255.f, 1.f, 1.f);
 }
 
 static void TooltipWrapped(const char* text)
@@ -2595,7 +2603,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                         else RtlCheckbox(locale::T("  GPU VRAM Usage"), &g_Config.showVRAM);
                     }
                     RtlCheckbox(locale::T("  RAM Usage"), &g_Config.showRAM);
-                    RtlCheckbox(locale::T("  Show process name"), &g_Config.showProcessName);
                     RtlCheckbox(locale::T("  Show Time"), &g_Config.showTime);
                     if (g_Config.showTime) {
                         ImGui::Indent(16.f);
@@ -2840,7 +2847,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
                 static auto lastClkPoll = Clock::now();
                 float clkDt = std::chrono::duration<float>(now - lastClkPoll).count();
-                if (clkDt >= 0.25f) {
+                if (clkDt >= 1.0f) {
                     lastClkPoll = now;
                     PollClockSensors();
                 }
@@ -3027,8 +3034,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                     if (g_Config.showCpuTemp && g_cpuTempAvailable && g_cpuTemp > 0) {
                         if (anyCpu) ImGui::SameLine(0, 4.f * ss);
                         float dispTemp = ToDisplayTemp(g_cpuTemp, g_Config.useFahrenheit);
-                        ImVec4 tc = g_cpuTemp > 85 ? ImVec4(1, .3f, .3f, 1) : g_cpuTemp > 70 ? ImVec4(1, .85f, .15f, 1) : ImVec4(.75f, .75f, .80f, 1);
-                        ImGui::TextColored(OvColV(tc), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
+                        ImGui::TextColored(OvTempCol(g_cpuTemp, 96.f), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
                         anyCpu = true;
                     }
                     if (wantCpuHzSt) {
@@ -3064,8 +3070,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                         if (g_Config.showGpuTemp && g_gpuTemp > 0) {
                             if (anyGpu) ImGui::SameLine(0, 4.f * ss);
                             float dispTemp = ToDisplayTemp(g_gpuTemp, g_Config.useFahrenheit);
-                            ImVec4 tc = g_gpuTemp > 85 ? ImVec4(1, .3f, .3f, 1) : g_gpuTemp > 70 ? ImVec4(1, .85f, .15f, 1) : ImVec4(.75f, .75f, .80f, 1);
-                            ImGui::TextColored(OvColV(tc), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
+                            ImGui::TextColored(OvTempCol(g_gpuTemp, 86.f), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
                             anyGpu = true;
                         }
                         if (wantGpuHzSt) {
@@ -3150,9 +3155,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
                         if (g_Config.showCpuTemp && g_cpuTempAvailable && g_cpuTemp > 0) {
                             float dispTemp = ToDisplayTemp(g_cpuTemp, g_Config.useFahrenheit);
-                            ImVec4 tc = g_cpuTemp > 85 ? ImVec4(1, .3f, .3f, 1) : g_cpuTemp > 70 ? ImVec4(1, .85f, .15f, 1) : ImVec4(.75f, .75f, .80f, 1);
+                            ImVec4 tc = OvTempCol(g_cpuTemp, 96.f);
                             ImGui::SameLine(0, 6);
-                            ImGui::TextColored(OvColV(tc), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
+                            ImGui::TextColored(tc, "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
                         }
                         if (wantCpuHzHz) {
                             ImGui::SameLine(0, 8);
@@ -3185,9 +3190,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
                             if (g_Config.showGpuTemp && g_gpuTemp > 0) {
                                 float dispTemp = ToDisplayTemp(g_gpuTemp, g_Config.useFahrenheit);
-                                ImVec4 tc = g_gpuTemp > 85 ? ImVec4(1, .3f, .3f, 1) : g_gpuTemp > 70 ? ImVec4(1, .85f, .15f, 1) : ImVec4(.75f, .75f, .80f, 1);
+                                ImVec4 tc = OvTempCol(g_gpuTemp, 86.f);
                                 ImGui::SameLine(0, 6);
-                                ImGui::TextColored(OvColV(tc), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
+                                ImGui::TextColored(tc, "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
                             }
                             if (wantGpuHzHz) {
                                 ImGui::SameLine(0, 8);
@@ -3279,43 +3284,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                     needSep = true;
                 }
 
-                // CPU (Usage, Temp, Frequency in MHz — No Graph)
-                {
-                    const bool wantCpuHzV = g_Config.showCpuFreq && g_Config.cpuFreqPath[0] && g_lhwmAvailable;
-                    const bool wantCpuPwrV = g_Config.showCpuPower && !g_lhwmCpuPowerPath.empty() && g_lhwmAvailable;
-                    const bool wantCpuFanV = g_Config.showCpuFan && !g_lhwmCpuFanPath.empty() && g_lhwmAvailable;
-                    if (g_Config.showCpuUsage || g_Config.showCpuTemp || wantCpuHzV || wantCpuPwrV || wantCpuFanV) {
-                        if (needSep) { ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); }
-                        const bool hasCpuTempVal = g_cpuTempAvailable && g_cpuTemp > 0;
-                        if (g_Config.showCpuUsage)
-                            ImGui::TextColored(OvColV(ColorByLoad(cpuUsage)), "CPU      %.0f%%", cpuUsage);
-                        if (g_Config.showCpuTemp && hasCpuTempVal) {
-                            float dispTemp = ToDisplayTemp(g_cpuTemp, g_Config.useFahrenheit);
-                            ImVec4 tc = g_cpuTemp > 85 ? ImVec4(1, .3f, .3f, 1) : g_cpuTemp > 70 ? ImVec4(1, .85f, .15f, 1) : ImVec4(.75f, .75f, .80f, 1);
-                            if (g_Config.showCpuUsage) ImGui::SameLine(0, 10.f * ovSc);
-                            else { ImGui::TextColored(OvCol(.82f, .82f, .88f, 1), "CPU      "); ImGui::SameLine(0, 0); }
-                            ImGui::TextColored(OvColV(tc), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
-                        } else if (g_Config.showCpuTemp && !g_Config.showCpuUsage) {
-                            ImGui::TextColored(OvCol(.50f, .50f, .55f, 1), "CPU      ---");
-                        }
-
-                        if (wantCpuHzV) {
-                            ImGui::TextColored(OvCol(.55f, .68f, .82f, 1), "CPU CLK  ");
-                            ImGui::SameLine(0, 0);
-                            DrawCleanFreqMHz(g_cpuClockMHz);
-                        }
-                        if (wantCpuPwrV && g_cpuPower > 0.f)
-                            ImGui::TextColored(OvCol(.85f, .78f, .55f, 1), "CPU PWR  %.0f W", g_cpuPower);
-                        if (wantCpuFanV)
-                            ImGui::TextColored(OvCol(.60f, .80f, .90f, 1), "CPU FAN  %.0f RPM", g_cpuFanRpm);
-
-                        ImGui::SetWindowFontScale(0.80f * ovSc);
-                        ImGui::TextColored(OvCol(.42f, .42f, .48f, 1), "  %s", g_cpuName);
-                        ImGui::SetWindowFontScale(ovSc);
-                        needSep = true;
-                    }
-                }
-
                 // GPU (Usage, Temp, Frequency in MHz, VRAM — No Graph)
                 {
                     const bool wantGpuHzV = g_Config.showGpuCoreFreq && g_Config.gpuCoreFreqPath[0] && g_lhwmAvailable;
@@ -3332,10 +3300,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                                 ImGui::TextColored(OvColV(ColorByLoad(g_gpuUsage)), "GPU      %.0f%%", g_gpuUsage);
                             if (g_Config.showGpuTemp && g_gpuTemp > 0) {
                                 float dispTemp = ToDisplayTemp(g_gpuTemp, g_Config.useFahrenheit);
-                                ImVec4 tc = g_gpuTemp > 85 ? ImVec4(1, .3f, .3f, 1) : g_gpuTemp > 70 ? ImVec4(1, .85f, .15f, 1) : ImVec4(.75f, .75f, .80f, 1);
                                 if (g_Config.showGpuUsage) ImGui::SameLine(0, 10.f * ovSc);
                                 else { ImGui::TextColored(OvCol(.82f, .82f, .88f, 1), "GPU      "); ImGui::SameLine(0, 0); }
-                                ImGui::TextColored(OvColV(tc), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
+                                ImGui::TextColored(OvTempCol(g_gpuTemp, 86.f), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
                             } else if (g_Config.showGpuTemp && !g_Config.showGpuUsage) {
                                 ImGui::TextColored(OvCol(.50f, .50f, .55f, 1), "GPU      ---");
                             }
@@ -3360,6 +3327,42 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                         }
                         ImGui::SetWindowFontScale(0.80f * ovSc);
                         ImGui::TextColored(OvCol(.42f, .42f, .48f, 1), "  %s", g_gpuName);
+                        ImGui::SetWindowFontScale(ovSc);
+                        needSep = true;
+                    }
+                }
+
+                // CPU (Usage, Temp, Frequency in MHz — No Graph)
+                {
+                    const bool wantCpuHzV = g_Config.showCpuFreq && g_Config.cpuFreqPath[0] && g_lhwmAvailable;
+                    const bool wantCpuPwrV = g_Config.showCpuPower && !g_lhwmCpuPowerPath.empty() && g_lhwmAvailable;
+                    const bool wantCpuFanV = g_Config.showCpuFan && !g_lhwmCpuFanPath.empty() && g_lhwmAvailable;
+                    if (g_Config.showCpuUsage || g_Config.showCpuTemp || wantCpuHzV || wantCpuPwrV || wantCpuFanV) {
+                        if (needSep) { ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); }
+                        const bool hasCpuTempVal = g_cpuTempAvailable && g_cpuTemp > 0;
+                        if (g_Config.showCpuUsage)
+                            ImGui::TextColored(OvColV(ColorByLoad(cpuUsage)), "CPU      %.0f%%", cpuUsage);
+                        if (g_Config.showCpuTemp && hasCpuTempVal) {
+                            float dispTemp = ToDisplayTemp(g_cpuTemp, g_Config.useFahrenheit);
+                            if (g_Config.showCpuUsage) ImGui::SameLine(0, 10.f * ovSc);
+                            else { ImGui::TextColored(OvCol(.82f, .82f, .88f, 1), "CPU      "); ImGui::SameLine(0, 0); }
+                            ImGui::TextColored(OvTempCol(g_cpuTemp, 96.f), "%.0f\xC2\xB0%s", dispTemp, g_Config.useFahrenheit ? "F" : "C");
+                        } else if (g_Config.showCpuTemp && !g_Config.showCpuUsage) {
+                            ImGui::TextColored(OvCol(.50f, .50f, .55f, 1), "CPU      ---");
+                        }
+
+                        if (wantCpuHzV) {
+                            ImGui::TextColored(OvCol(.55f, .68f, .82f, 1), "CPU CLK  ");
+                            ImGui::SameLine(0, 0);
+                            DrawCleanFreqMHz(g_cpuClockMHz);
+                        }
+                        if (wantCpuPwrV && g_cpuPower > 0.f)
+                            ImGui::TextColored(OvCol(.85f, .78f, .55f, 1), "CPU PWR  %.0f W", g_cpuPower);
+                        if (wantCpuFanV)
+                            ImGui::TextColored(OvCol(.60f, .80f, .90f, 1), "CPU FAN  %.0f RPM", g_cpuFanRpm);
+
+                        ImGui::SetWindowFontScale(0.80f * ovSc);
+                        ImGui::TextColored(OvCol(.42f, .42f, .48f, 1), "  %s", g_cpuName);
                         ImGui::SetWindowFontScale(ovSc);
                         needSep = true;
                     }
