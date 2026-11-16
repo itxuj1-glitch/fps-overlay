@@ -12,11 +12,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-
-    - name: Build with MSBuild Script
+    - name: Build with MSVC Script
       run: build-msvc.bat
       shell: cmd
 
