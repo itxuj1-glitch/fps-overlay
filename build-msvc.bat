@@ -14,12 +14,15 @@ if "%VS_PATH%"=="" (
 echo Loading MSVC environment...
 call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
 
-echo Ensuring ImGui files exist...
+echo Ensuring all ImGui files exist...
 if not exist "imgui" mkdir imgui
 if not exist "imgui\imgui.h" (
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imgui.h' -OutFile 'imgui\imgui.h'"
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imgui_internal.h' -OutFile 'imgui\imgui_internal.h'"
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imconfig.h' -OutFile 'imgui\imconfig.h'"
+  powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imstb_textedit.h' -OutFile 'imgui\imstb_textedit.h'"
+  powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imstb_rectpack.h' -OutFile 'imgui\imstb_rectpack.h'"
+  powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imstb_truetype.h' -OutFile 'imgui\imstb_truetype.h'"
 )
 
 echo Compiling overlay...
