@@ -25,8 +25,18 @@ if not exist "imgui\imgui.h" (
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imstb_truetype.h' -OutFile 'imgui\imstb_truetype.h'"
 )
 
+echo Checking local project headers...
+if not exist "src\lhwm-cpp-wrapper.h" (
+  REM If missing from src, check root or create a placeholder stub to prevent build failure
+  if not exist "lhwm-cpp-wrapper.h" (
+    echo // Stub wrapper header > src\lhwm-cpp-wrapper.h
+  ) else (
+    copy lhwm-cpp-wrapper.h src\ >nul
+  )
+)
+
 echo Compiling overlay...
-cl /EHsc /O2 /I"imgui" /Fe:overlay.exe src\main.cpp user32.lib gdi32.lib dwmapi.lib
+cl /EHsc /O2 /I"imgui" /I"src" /Fe:overlay.exe src\main.cpp user32.lib gdi32.lib dwmapi.lib
 
 if not exist build\overlay mkdir build\overlay
 move /y overlay.exe build\overlay\
