@@ -1,26 +1,55 @@
-name: Build Overlay
+
+name: Build FPS Overlay
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Build with MSVC Script
-      run: build-msvc.bat
-      shell: cmd
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: overlay-exe
-        path: build/overlay/
+      - name: Build FPS Overlay
+        shell: pwsh
+        run: |
+          msbuild FPSOverlay.vcxproj /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "FPS Overlay compilation failed."
+          }
+
+      - name: Prepare output files
+        shell: pwsh
+        run: |
+          $output = "build/overlay"
+
+          if (!(Test-Path "$output/overlay.exe")) {
+            throw "Build completed without producing overlay.exe."
+          }
+
+          Copy-Item "libs/lhwm/lhwm-wrapper.dll" $output -Force
+          Copy-Item "libs/lhwm/LibreHardwareMonitorLib.dll" $output -Force
+
+          if (Test-Path "locales") {
+            New-Item -ItemType Directory -Force "$output/locales" | Out-Null
+            Copy-Item "locales/*.json" "$output/locales/" -Force
+          }
+
+      - name: Upload FPS Overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-exe
+          path: build/overlay/
+          if-no-files-found: error
