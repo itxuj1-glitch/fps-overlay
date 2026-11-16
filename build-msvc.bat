@@ -11,14 +11,14 @@ if "%VS_PATH%"=="" (
   exit /b 1
 )
 
-echo Loading MSVC environment from "%VS_PATH%...
+echo Loading MSVC environment...
 call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
 
-echo Building project...
-msbuild fps-overlay.sln /p:Configuration=Release /p:Platform=x64
-if errorlevel 1 (
-  REM Fallback if no .sln file, build via MSBuild on project file directly
-  msbuild src\fps-overlay.vcxproj /p:Configuration=Release /p:Platform=x64
-)
+echo Compiling overlay...
+cl /EHsc /O2 /Fe:overlay.exe src\main.cpp user32.lib gdi32.lib dwmapi.lib
+
+if not exist build\overlay mkdir build\overlay
+move /y overlay.exe build\overlay\
+move /y *.obj build\overlay\ 2>nul
 
 endlocal
