@@ -14,7 +14,7 @@ if "%VS_PATH%"=="" (
 echo Loading MSVC environment...
 call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
 
-echo Ensuring all ImGui files exist...
+echo Ensuring all ImGui files and backends exist...
 if not exist "imgui" mkdir imgui
 if not exist "imgui\imgui.h" (
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imgui.h' -OutFile 'imgui\imgui.h'"
@@ -23,11 +23,12 @@ if not exist "imgui\imgui.h" (
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imstb_textedit.h' -OutFile 'imgui\imstb_textedit.h'"
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imstb_rectpack.h' -OutFile 'imgui\imstb_rectpack.h'"
   powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/imstb_truetype.h' -OutFile 'imgui\imstb_truetype.h'"
+  powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/backends/imgui_impl_win32.h' -OutFile 'imgui\imgui_impl_win32.h'"
+  powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ocornut/imgui/v1.90.1/backends/imgui_impl_dx11.h' -OutFile 'imgui\imgui_impl_dx11.h'"
 )
 
 echo Checking local project headers...
 if not exist "src\lhwm-cpp-wrapper.h" (
-  REM If missing from src, check root or create a placeholder stub to prevent build failure
   if not exist "lhwm-cpp-wrapper.h" (
     echo // Stub wrapper header > src\lhwm-cpp-wrapper.h
   ) else (
