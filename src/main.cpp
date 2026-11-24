@@ -2353,6 +2353,11 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 {
     g_hInstance = hInst;
     LoadConfig(g_Config);
+
+    // Direct-launch mode: clicking overlay.exe starts the overlay immediately.
+    // All display and sensor choices continue to come from the saved INI file.
+    g_Config.autoStart = true;
+
     locale::Load(g_Config.language);
     locale::ApplyImGuiRtlFlags();
     CheckForUpdatesAsync();
@@ -2426,7 +2431,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
     MSG msg = {};
     while (g_Running)
     {
-        if (g_Pending == CMD_START_OVERLAY) { g_Pending = CMD_NONE; SwitchToOverlay(); }
+        // Do not show the setup window on normal launch. Wait until sensor discovery
+        // finishes, persist the loaded selections, then enter overlay mode.
+        if (g_Pending == CMD_START_OVERLAY &&
+            g_lhwmInitFinished.load(std::memory_order_acquire)) {
+            g_Pending = CMD_NONE;
+            SaveConfig(g_Config);
+            SwitchToOverlay();
+        }
         if (g_Pending == CMD_SHOW_SETTINGS) { g_Pending = CMD_NONE; SwitchToConfig();  }
         if (g_Pending == CMD_EXIT)          { g_Running = false; break; }
 
@@ -2730,7 +2742,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                 else if (g_Config.settingsTab == SETTINGS_TAB_STARTUP) {
                     RtlSectionTitle(locale::T("STARTUP"));
                     ImGui::Spacing();
-                    RtlCheckbox(locale::T("  Start overlay immediately"), &g_Config.autoStart);
+                    ImGui::TextWrapped("FPS Overlay now starts directly in overlay mode whenever you launch overlay.exe. Your saved display and sensor selections are loaded automatically.");
                 }
                 else if (g_Config.settingsTab == SETTINGS_TAB_LANGUAGE) {
                     RtlSectionTitle(locale::T("LANGUAGE"));
